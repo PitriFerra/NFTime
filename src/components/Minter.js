@@ -4,6 +4,9 @@ import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Dropdown from 'react-bootstrap/Dropdown';
 import Form from 'react-bootstrap/Form';
+import Card from 'react-bootstrap/Card';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
 
 const Minter = (props) => {
   //State variables ----------------------------------
@@ -14,6 +17,7 @@ const Minter = (props) => {
   const [hash, setHash] = useState("");
   const [recipient, setRecipient] = useState("");
 	const [info, setInfo] = useState([]);
+  const [filteredInfo, setFilteredInfo] = useState([]); // Filtered watches
   // -------------------------------------------------
 
   // Fetch the required data using the get() method
@@ -22,11 +26,12 @@ const Minter = (props) => {
       const querySnapshot = await getDocs(collection(db, "watches"));
       const data = querySnapshot.docs.map(doc => doc.data());
       setInfo(data);
+      setFilteredInfo(data);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
-
+  
   function addWalletListener() {
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", (accounts) => {
@@ -75,20 +80,16 @@ const Minter = (props) => {
     setStatus(status);
   };
 
+  const handleFilterChange = (event) => {
+    const value = event.target.value.toLowerCase();
+    const filteredData = info.filter((watch) =>
+      watch.model.toLowerCase().includes(value) || watch.brand.toLowerCase().includes(value)
+    );
+    setFilteredInfo(filteredData);
+  };
+
   return (
     <div className="Minter">
-      <div>
-        <center>
-          <h2>Watches Details</h2>
-        </center>
-        {
-          info.map((data) => (
-            <Frame brand={data.brand}
-              model={data.model}
-              year_of_production={data.year_of_production} />
-          ))
-        }
-      </div>
       <button id="walletButton" onClick={connectWalletPressed}>
         {walletAddress.length > 0 ? (
           "Connected: " +
@@ -99,12 +100,33 @@ const Minter = (props) => {
           <span>Connect Wallet</span>
         )}
       </button>
-
       <br></br>
       <h1 id="title">🧙‍♂️ NFTime Minter</h1>
       <p>
-        Simply add your asset's hash from Pinata, name, description and recipient then press "Mint."
+        Simply select the desired watch from the list, add a recipient and then press "Mint."
       </p>
+      <Form.Control
+        autoFocus
+        className="mx-3 my-2 w-auto"
+        placeholder="Type to filter..."
+        onChange={handleFilterChange}
+      />
+      <Row xs={1} md={5} className="g-4">
+        {filteredInfo.map((watch, idx) => (
+          <Col key={idx}>
+            <Card>
+              <Card.Img variant="top" src={`https://ipfs.io/ipfs/${watch.image}`} />
+              <Card.Body>
+                <Card.Title>{watch.model}</Card.Title>
+                <Card.Text>
+                  {watch.brand} - {watch.year_of_production}
+                </Card.Text>
+                {/* Add any additional watch details as needed */}
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
       <form>
         <h2>🖼 Hash of asset: </h2>
         <input
@@ -140,26 +162,6 @@ const Minter = (props) => {
     </div>
   );
 };
-
-// Define how each display entry will be structured
-const Frame = ({ brand, model, year_of_production }) => {
-	console.log(brand + " " + model + " " + year_of_production);
-	return (
-		<center>
-			<div className="div">
-
-				<p>Brand : {brand}</p>
-
-
-				<p>Model : {model}</p>
-
-
-				<p>Year of production : {year_of_production}</p>
-
-			</div>
-		</center>
-	);
-}
 
 // The forwardRef is important!! Dropdown needs access to the DOM node in order to position the Menu
 const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
@@ -197,8 +199,10 @@ const CustomMenu = React.forwardRef(
         />
         <ul className="list-unstyled">
           {React.Children.toArray(children).filter(
-            (child) =>
-              !value || child.props.children.toLowerCase().startsWith(value),
+            (child) => {
+              const childText = Array.from(child.props.children).join('').toLowerCase();
+              return !value || childText.startsWith(value.toLowerCase());
+            }
           )}
         </ul>
       </div>
