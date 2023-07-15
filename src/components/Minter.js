@@ -1,15 +1,31 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { connectWallet, getCurrentWalletConnected, mintNFT } from "../utils/interact.js";
+import { db } from '../firebase.js'; // Import Firestore database
+import { collection, getDocs } from "firebase/firestore";
+import Dropdown from 'react-bootstrap/Dropdown';
+import Form from 'react-bootstrap/Form';
 
 const Minter = (props) => {
-
-  //State variables
+  //State variables ----------------------------------
   const [walletAddress, setWallet] = useState("");
   const [status, setStatus] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [hash, setHash] = useState("");
   const [recipient, setRecipient] = useState("");
+	const [info, setInfo] = useState([]);
+  // -------------------------------------------------
+
+  // Fetch the required data using the get() method
+  const Fetchdata = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "watches"));
+      const data = querySnapshot.docs.map(doc => doc.data());
+      setInfo(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
 
   function addWalletListener() {
     if (window.ethereum) {
@@ -42,6 +58,7 @@ const Minter = (props) => {
       setWallet(address);
       setStatus(status);
       addWalletListener();
+      await Fetchdata();
     }
     
     fetchData();
@@ -60,6 +77,18 @@ const Minter = (props) => {
 
   return (
     <div className="Minter">
+      <div>
+        <center>
+          <h2>Watches Details</h2>
+        </center>
+        {
+          info.map((data) => (
+            <Frame brand={data.brand}
+              model={data.model}
+              year_of_production={data.year_of_production} />
+          ))
+        }
+      </div>
       <button id="walletButton" onClick={connectWalletPressed}>
         {walletAddress.length > 0 ? (
           "Connected: " +
@@ -111,5 +140,70 @@ const Minter = (props) => {
     </div>
   );
 };
+
+// Define how each display entry will be structured
+const Frame = ({ brand, model, year_of_production }) => {
+	console.log(brand + " " + model + " " + year_of_production);
+	return (
+		<center>
+			<div className="div">
+
+				<p>Brand : {brand}</p>
+
+
+				<p>Model : {model}</p>
+
+
+				<p>Year of production : {year_of_production}</p>
+
+			</div>
+		</center>
+	);
+}
+
+// The forwardRef is important!! Dropdown needs access to the DOM node in order to position the Menu
+const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
+  <a
+    href=""
+    ref={ref}
+    onClick={(e) => {
+      e.preventDefault();
+      onClick(e);
+    }}
+  >
+    {children}
+    &#x25bc;
+  </a>
+));
+
+// forwardRef again here! Dropdown needs access to the DOM of the Menu to measure it
+const CustomMenu = React.forwardRef(
+  ({ children, style, className, 'aria-labelledby': labeledBy }, ref) => {
+    const [value, setValue] = useState('');
+
+    return (
+      <div
+        ref={ref}
+        style={style}
+        className={className}
+        aria-labelledby={labeledBy}
+      >
+        <Form.Control
+          autoFocus
+          className="mx-3 my-2 w-auto"
+          placeholder="Type to filter..."
+          onChange={(e) => setValue(e.target.value)}
+          value={value}
+        />
+        <ul className="list-unstyled">
+          {React.Children.toArray(children).filter(
+            (child) =>
+              !value || child.props.children.toLowerCase().startsWith(value),
+          )}
+        </ul>
+      </div>
+    );
+  },
+);
 
 export default Minter;
