@@ -6,12 +6,12 @@ const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey); 
 
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0x93d9553792F9B5f5c18C0528B4a45de6FB746Db3";
+const contractAddress = "0xd2431f46edaa7a834a2665951c841a752496130a";
 
-export const mintNFT = async(hash, name, description, recipient) => {
+export const mintNFT = async(recipient, watch) => {
 
     //error handling
-    if (hash.trim() === "" || (name.trim() === "" || description.trim() === "" || recipient.trim() === "")) { 
+    if(recipient.trim() === "") { 
         return {
             success: false,
             status: "❗Please make sure all fields are completed before minting.",
@@ -20,9 +20,23 @@ export const mintNFT = async(hash, name, description, recipient) => {
 
     //make metadata
     const metadata = {};
-    metadata.name = name;
-    metadata.image = "https://ipfs.io/ipfs/" + hash;
-    metadata.description = description;
+    metadata.name = watch.model;
+    metadata.image = "https://ipfs.io/ipfs/" + watch.image;
+    metadata.description = watch.description;
+    metadata.attributes = [
+      ...watch.colors.map((color) => ({
+        trait_type: "colors",
+        value: color,
+      })),
+      {
+        trait_type: "year_of_production",
+        value: watch.year_of_production,
+      },
+      {
+        trait_type: "certifier",
+        value: window.ethereum.selectedAddress,
+      }
+    ];
 
     //pinata pin request
     const pinataResponse = await pinJSONToIPFS(metadata);

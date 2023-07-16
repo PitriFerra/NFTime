@@ -1,16 +1,34 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { connectWallet, getCurrentWalletConnected, mintNFT } from "../utils/interact.js";
+import { db } from '../firebase.js'; // Import Firestore database
+import { collection, getDocs } from "firebase/firestore";
+import Form from 'react-bootstrap/Form';
+import Card from 'react-bootstrap/Card';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
 
 const Minter = (props) => {
-
-  //State variables
+  //State variables ----------------------------------
   const [walletAddress, setWallet] = useState("");
   const [status, setStatus] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [hash, setHash] = useState("");
   const [recipient, setRecipient] = useState("");
+	const [info, setInfo] = useState([]);
+  const [filteredInfo, setFilteredInfo] = useState([]); // Filtered watches
+  const [selectedWatch, setSelectedWatch] = useState(null);
+  // -------------------------------------------------
 
+  // Fetch the required data using the get() method
+  const Fetchdata = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "watches"));
+      const data = querySnapshot.docs.map(doc => doc.data());
+      setInfo(data);
+      setFilteredInfo(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+  
   function addWalletListener() {
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", (accounts) => {
@@ -42,6 +60,7 @@ const Minter = (props) => {
       setWallet(address);
       setStatus(status);
       addWalletListener();
+      await Fetchdata();
     }
     
     fetchData();
@@ -54,8 +73,24 @@ const Minter = (props) => {
   };
 
   const onMintPressed = async () => {
-    const { status } = await mintNFT(hash, name, description, recipient);
-    setStatus(status);
+    if (selectedWatch) {
+      const { status } = await mintNFT(recipient, selectedWatch);
+      setStatus(status);
+    } else {
+      setStatus("Please select an item from the list.");
+    }
+  };
+
+  const handleFilterChange = (event) => {
+    const value = event.target.value.toLowerCase();
+    const filteredData = info.filter((watch) =>
+      watch.model.toLowerCase().includes(value) || watch.brand.toLowerCase().includes(value)
+    );
+    setFilteredInfo(filteredData);
+  };
+
+  const handleCardClick = (watch) => {
+    setSelectedWatch(watch);
   };
 
   return (
@@ -70,37 +105,40 @@ const Minter = (props) => {
           <span>Connect Wallet</span>
         )}
       </button>
-
       <br></br>
       <h1 id="title">🧙‍♂️ NFTime Minter</h1>
       <p>
-        Simply add your asset's hash from Pinata, name, description and recipient then press "Mint."
+        Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".
       </p>
       <form>
-        <h2>🖼 Hash of asset: </h2>
-        <input
-          type="text"
-          placeholder="e.g. QmSbF9xbradCfPDeV9y1K8e92CkkJ9rdeqePFrgFSfVp9y"
-          onChange={(event) => setHash(event.target.value)}
-        />
-        <h2>🤔 Name: </h2>
-        <input
-          type="text"
-          placeholder="e.g. My first NFT!"
-          onChange={(event) => setName(event.target.value)}
-        />
-        <h2>✍️ Description: </h2>
-        <input
-          type="text"
-          placeholder="e.g. Even cooler than cryptokitties ;)"
-          onChange={(event) => setDescription(event.target.value)}
-        />
         <h2>Recipient: </h2>
         <input
           type="text"
           placeholder="0x..."
           onChange={(event) => setRecipient(event.target.value)}
         />
+        <Form.Control
+          autoFocus
+          className="mx-3 my-2 w-auto"
+          placeholder="Type to filter..."
+          onChange={handleFilterChange}
+        />
+        <Row xs={1} md={5} className="g-4">
+          {filteredInfo.map((watch, idx) => (
+            <Col key={idx}>
+              <Card className={`bg-${selectedWatch === watch ? "info" : "light"}`} onClick={() => handleCardClick(watch)}>
+                <Card.Img variant="top" src={`https://ipfs.io/ipfs/${watch.image}`} />
+                <Card.Body>
+                  <Card.Title>{watch.model}</Card.Title>
+                  <Card.Text>
+                    {watch.brand} - {watch.year_of_production}
+                  </Card.Text>
+                  {/* Add any additional watch details as needed */}
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       </form>
       <button id="mintButton" onClick={onMintPressed}>
         Mint NFT
