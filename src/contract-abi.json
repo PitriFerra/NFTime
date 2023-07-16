@@ -343,6 +343,24 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "brand",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "validity",
+        "type": "bool"
+      }
+    ],
+    "name": "setBrandValidity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes4",
         "name": "interfaceId",
         "type": "bytes4"
