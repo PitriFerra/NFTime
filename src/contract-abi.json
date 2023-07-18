@@ -195,6 +195,25 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "brand",
+        "type": "address"
+      }
+    ],
+    "name": "getBrandValidity",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "owner",
         "type": "address"
       },

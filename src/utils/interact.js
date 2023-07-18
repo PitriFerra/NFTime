@@ -1,4 +1,5 @@
 import {pinJSONToIPFS} from './pinata.js'
+import Web3 from 'web3';
 require('dotenv').config();
 const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
 console.log(process.env.REACT_APP_ALCHEMY_KEY);
@@ -6,16 +7,20 @@ const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey); 
 
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0xd2431f46edaa7a834a2665951c841a752496130a";
+const contractAddress = "0xd8AE65f8803fDF181423bce31cDfdB504E00Ad5a";
+
+// Create a new instance of web3
+const web33 = new Web3(window.ethereum);
+// Create a contract instance using the contract address and ABI
+const contract = new web33.eth.Contract(contractABI, contractAddress);
 
 export const mintNFT = async(recipient, watch) => {
-
     //error handling
     if(recipient.trim() === "") { 
-        return {
-            success: false,
-            status: "❗Please make sure all fields are completed before minting.",
-        }
+      return {
+        success: false,
+        status: "❗Please make sure all fields are completed before minting.",
+      }
     }
 
     //make metadata
@@ -38,42 +43,41 @@ export const mintNFT = async(recipient, watch) => {
       }
     ];
 
-    //pinata pin request
+    // pinata pin request
     const pinataResponse = await pinJSONToIPFS(metadata);
     if (!pinataResponse.success) {
-        return {
-            success: false,
-            status: "😢 Something went wrong while uploading your tokenURI.",
-        }
+      return {
+        success: false,
+        status: "😢 Something went wrong while uploading your tokenURI.",
+      }
     } 
     const tokenURI = pinataResponse.pinataUrl;  
 
-    //load smart contract
-    window.contract = await new web3.eth.Contract(contractABI, contractAddress);//loadContract();
+    // load smart contract
+    window.contract = await new web3.eth.Contract(contractABI, contractAddress); // loadContract();
 
-    //set up your Ethereum transaction
+    // set up your Ethereum transaction
     const transactionParameters = {
-        to: contractAddress, // Required except during contract publications.
-        from: window.ethereum.selectedAddress, // must match user's active address.
-        'data': window.contract.methods.mint(recipient, tokenURI).encodeABI() //make call to NFT smart contract 
+      to: contractAddress, // Required except during contract publications.
+      from: window.ethereum.selectedAddress, // must match user's active address.
+      'data': window.contract.methods.mint(recipient, tokenURI).encodeABI() // make call to NFT smart contract 
     };
 
-    //sign transaction via Metamask
+    // sign transaction via Metamask
     try {
-        const txHash = await window.ethereum
-            .request({
-                method: 'eth_sendTransaction',
-                params: [transactionParameters],
-            });
-        return {
-            success: true,
-            status: "✅ Check out your transaction on Etherscan: https://mumbai.polygonscan.com/tx/" + txHash
-        }
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      });
+      return {
+        success: true,
+        status: "✅ Check out your transaction on Etherscan: https://mumbai.polygonscan.com/tx/" + txHash
+      }
     } catch (error) {
-        return {
-            success: false,
-            status: "😥 Something went wrong: " + error.message
-        }
+      return {
+        success: false,
+        status: "😥 Something went wrong: " + error.message
+      }
     }
 }
 
@@ -114,43 +118,67 @@ export const connectWallet = async () => {
 };
 
 export const getCurrentWalletConnected = async () => {
-    if (window.ethereum) {
-      try {
-        const addressArray = await window.ethereum.request({
-          method: "eth_accounts",
-        });
-        if (addressArray.length > 0) {
-          return {
-            address: addressArray[0],
-            status: "👆🏽 Write a message in the text-field above.",
-          };
-        } else {
-          return {
-            address: "",
-            status: "🦊 Connect to Metamask using the top right button.",
-          };
-        }
-      } catch (err) {
+  if (window.ethereum) {
+    try {
+      const addressArray = await window.ethereum.request({
+        method: "eth_accounts",
+      });
+      if (addressArray.length > 0) {
+        return {
+          address: addressArray[0],
+          status: "Welcome to NFTime",
+        };
+      } else {
         return {
           address: "",
-          status: "😥 " + err.message,
+          status: "🦊 Connect to Metamask using the top right button.",
         };
       }
-    } else {
+    } catch (err) {
       return {
         address: "",
-        status: (
-          <span>
-            <p>
-              {" "}
-              🦊{" "}
-              <a rel="noreferrer" target="_blank" href={`https://metamask.io/download.html`}>
-                You must install Metamask, a virtual Ethereum wallet, in your
-                browser.
-              </a>
-            </p>
-          </span>
-        ),
+        status: "😥 " + err.message,
       };
     }
+  } else
+    return installEthereum();
+};
+
+export const getBrandValidity = async () => {
+  try {
+    // Call the smart contract function
+    const result = await contract.methods.getBrandValidity(window.ethereum.selectedAddress).call();
+
+    if(result)
+      return {
+        result: result,
+        status: "Welcome to NFTime",
+        };
+    else
+      return {
+        result: result,
+        status: "😥 You're not a brand or your validity has been revoked. Contact your brand for more details",
+      };
+  } catch (error) {
+    console.error("Error retrieving brand validity:", error);
+    return null;
+  }
+}
+
+function installEthereum() {
+  return {
+    address: "",
+    status: (
+      <span>
+        <p>
+          {" "}
+          🦊{" "}
+          <a rel="noreferrer" target="_blank" href={`https://metamask.io/download.html`}>
+            You must install Metamask, a virtual Ethereum wallet, in your
+            browser.
+          </a>
+        </p>
+      </span>
+    ),
   };
+}
