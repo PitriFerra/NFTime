@@ -161,7 +161,7 @@ export const getBrandValidity = async () => {
       };
   } catch (error) {
     console.error("Error retrieving brand validity:", error);
-    return null;
+    return false;
   }
 }
 

@@ -19,7 +19,7 @@ const Minter = (props) => {
   // -------------------------------------------------
 
   // Fetch the required data using the get() method
-  const Fetchdata = async () => {
+  const fetchDataFromDB = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "watches"));
       const data = querySnapshot.docs.map(doc => doc.data());
@@ -54,15 +54,23 @@ const Minter = (props) => {
       );
     }
   }
+
+  async function login(walletResponse) {
+    setStatus(walletResponse.status);
+    setWallet(walletResponse.address);
+    const brandValidity = await getBrandValidity();
+
+    if(brandValidity.result)
+      setBrandLogged(true);
+    else
+      fetchDataFromDB();
+  }
  
   useEffect(() => {
     async function fetchData() {
-      const { address, status } = await getCurrentWalletConnected();
-      setWallet(address);
-      setStatus(status);
-      setBrandLogged(false);
+      const walletResponse = await getCurrentWalletConnected();
+      login(walletResponse);
       addWalletListener();
-      await Fetchdata();
     }
     
     fetchData();
@@ -70,8 +78,7 @@ const Minter = (props) => {
 
   const connectWalletPressed = async () => {
     const walletResponse = await connectWallet();
-    setStatus(walletResponse.status);
-    setWallet(walletResponse.address);
+    login(walletResponse);
   };
 
   const onMintPressed = async () => {
@@ -82,12 +89,6 @@ const Minter = (props) => {
       setStatus("Please select an item from the list.");
     }
   };
-
-  const loginBrandPressed = async () => {
-    const brandValidity = await getBrandValidity();
-    setBrandLogged(brandValidity.result);
-    setStatus(brandValidity.status);
-  }
 
   const handleFilterChange = (event) => {
     const value = event.target.value.toLowerCase();
@@ -113,11 +114,6 @@ const Minter = (props) => {
           <span>Connect Wallet</span>
         )}
       </button>
-      { walletAddress.length > 0 && !brandLogged && (
-        <button id="brandButton" onClick={loginBrandPressed}>
-          <span>Login as brand</span>
-        </button>
-      )}      
       <br></br>
       { brandLogged && (
         <div>
