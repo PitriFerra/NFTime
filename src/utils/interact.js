@@ -1,32 +1,28 @@
 import {pinJSONToIPFS} from './pinata.js'
 import Web3 from 'web3';
+
 require('dotenv').config();
 const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
-console.log(process.env.REACT_APP_ALCHEMY_KEY);
 const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey); 
-
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0xd8AE65f8803fDF181423bce31cDfdB504E00Ad5a";
-
-// Create a new instance of web3
-const web33 = new Web3(window.ethereum);
-// Create a contract instance using the contract address and ABI
-const contract = new web33.eth.Contract(contractABI, contractAddress);
+const contractAddress = "0x0CF616d08b079565de7AA1fb5e807c715b3a4053";
+const web33 = new Web3(window.ethereum); // Create a new instance of web3
+const contract = new web33.eth.Contract(contractABI, contractAddress); // Create a contract instance using the contract address and ABI
 
 export const mintNFT = async(recipient, watch) => {
-    //error handling
-    if(recipient.trim() === "") { 
+    // error handling --------------------------------------------------------
+    if(recipient.trim() === "")
       return {
         success: false,
-        status: "❗Please make sure all fields are completed before minting.",
+        status: "❗Please make sure all fields are completed before minting."
       }
-    }
+    // -----------------------------------------------------------------------
 
-    //make metadata
+    // make metadata ---------------------------------------
     const metadata = {};
     metadata.name = watch.model;
-    metadata.image = "https://ipfs.io/ipfs/" + watch.image;
+    metadata.image = watch.image;
     metadata.description = watch.description;
     metadata.attributes = [
       ...watch.colors.map((color) => ({
@@ -40,21 +36,24 @@ export const mintNFT = async(recipient, watch) => {
       {
         trait_type: "certifier",
         value: window.ethereum.selectedAddress,
+      },
+      {
+        trait_type: "brand",
+        value: watch.brand,
       }
     ];
+    // -----------------------------------------------------
+    
+    const pinataResponse = await pinJSONToIPFS(metadata); // pinata pin request
 
-    // pinata pin request
-    const pinataResponse = await pinJSONToIPFS(metadata);
-    if (!pinataResponse.success) {
+    if (!pinataResponse.success)
       return {
         success: false,
         status: "😢 Something went wrong while uploading your tokenURI.",
       }
-    } 
+    
     const tokenURI = pinataResponse.pinataUrl;  
-
-    // load smart contract
-    window.contract = await new web3.eth.Contract(contractABI, contractAddress); // loadContract();
+    window.contract = await new web3.eth.Contract(contractABI, contractAddress); // load smart contract
 
     // set up your Ethereum transaction
     const transactionParameters = {
@@ -63,7 +62,7 @@ export const mintNFT = async(recipient, watch) => {
       'data': window.contract.methods.mint(recipient, tokenURI).encodeABI() // make call to NFT smart contract 
     };
 
-    // sign transaction via Metamask
+    // Sign transaction via Metamask ---------------------------------------------------------------------
     try {
       const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
@@ -79,6 +78,7 @@ export const mintNFT = async(recipient, watch) => {
         status: "😥 Something went wrong: " + error.message
       }
     }
+    // ---------------------------------------------------------------------------------------------------
 }
 
 export const connectWallet = async () => {
@@ -123,6 +123,7 @@ export const getCurrentWalletConnected = async () => {
       const addressArray = await window.ethereum.request({
         method: "eth_accounts",
       });
+
       if (addressArray.length > 0) {
         return {
           address: addressArray[0],
@@ -146,14 +147,13 @@ export const getCurrentWalletConnected = async () => {
 
 export const getBrandValidity = async () => {
   try {
-    // Call the smart contract function
-    const result = await contract.methods.getBrandValidity(window.ethereum.selectedAddress).call();
+    const result = await contract.methods.getBrandValidity(window.ethereum.selectedAddress).call(); // Call the smart contract function
 
     if(result)
       return {
         result: result,
         status: "Welcome to NFTime",
-        };
+      };
     else
       return {
         result: result,
@@ -161,9 +161,20 @@ export const getBrandValidity = async () => {
       };
   } catch (error) {
     console.error("Error retrieving brand validity:", error);
-    return null;
+    return false;
   }
 }
+
+export const getOwnedNFTs = async () => {
+  try {
+    const walletAddress = window.ethereum.selectedAddress; // Get the connected wallet's address
+    const ownedNFTs = await contract.methods.getOwnedNFTs(walletAddress).call(); // Call the smart contract function to get the NFTs owned by the wallet
+    return ownedNFTs;
+  } catch (error) {
+    console.error("Error retrieving owned NFTs:", error);
+    return [];
+  }
+};
 
 function installEthereum() {
   return {

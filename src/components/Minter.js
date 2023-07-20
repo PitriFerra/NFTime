@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity } from "../utils/interact.js";
+import React, { useEffect, useState, useCallback } from "react";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -19,7 +19,7 @@ const Minter = (props) => {
   // -------------------------------------------------
 
   // Fetch the required data using the get() method
-  const Fetchdata = async () => {
+  const fetchDataFromDB = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "watches"));
       const data = querySnapshot.docs.map(doc => doc.data());
@@ -29,17 +29,60 @@ const Minter = (props) => {
       console.error("Error fetching data:", error);
     }
   };
+
+  const login = useCallback(async (walletResponse) => {
+    setStatus(walletResponse.status);
+    setWallet(walletResponse.address);
+    const brandValidity = await getBrandValidity();
+
+    if(brandValidity.result) {
+      setBrandLogged(true);
+      fetchDataFromDB();
+    } else {
+      setBrandLogged(false);
+      const ownedNFTs = await getOwnedNFTs();
+
+      try {  
+        const responses = await Promise.all(ownedNFTs.map(url => fetch(url)));
+        const dataPromises = responses.map(response => response.json());
+        const fetchedData = await Promise.all(dataPromises);
+        const allWatchData = fetchedData.flat(); // Assuming fetchedData is an array of arrays, you may need to adjust accordingly
+
+        // Map the "name" field to "model"
+        const transformedData = allWatchData.map((watch) => {
+          const brandAttribute = watch.attributes.find(
+            (attribute) => attribute.trait_type === "brand"
+          );
+    
+          const yearOfProductionAttribute = watch.attributes.find(
+            (attribute) => attribute.trait_type === "year_of_production"
+          );
+    
+          const brand = brandAttribute ? brandAttribute.value : "Unknown Brand";
+          const yearOfProduction = yearOfProductionAttribute
+            ? parseInt(yearOfProductionAttribute.value)
+            : 0; // You can set a default value for year if it's not available
+    
+          return {
+            ...watch,
+            model: watch.name,
+            brand: brand,
+            year_of_production: yearOfProduction,
+          };
+        });
+        setInfo(transformedData);
+        setFilteredInfo(transformedData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+  }, []);
   
-  function addWalletListener() {
+  const addWalletListener = useCallback(() => {
     if (window.ethereum) {
-      window.ethereum.on("accountsChanged", (accounts) => {
-        if (accounts.length > 0) {
-          setWallet(accounts[0]);
-          setStatus("👆🏽 Write a message in the text-field above.");
-        } else {
-          setWallet("");
-          setStatus("🦊 Connect to Metamask using the top right button.");
-        }
+      window.ethereum.on("accountsChanged", async (accounts) => {
+        const walletResponse = await getCurrentWalletConnected();
+        login(walletResponse);
       });
     } else {
       setStatus(
@@ -53,25 +96,21 @@ const Minter = (props) => {
         </p>
       );
     }
-  }
+  }, [login]);
  
   useEffect(() => {
-    async function fetchData() {
-      const { address, status } = await getCurrentWalletConnected();
-      setWallet(address);
-      setStatus(status);
-      setBrandLogged(false);
+    async function initializePage() {
+      const walletResponse = await getCurrentWalletConnected();
+      login(walletResponse);
       addWalletListener();
-      await Fetchdata();
     }
     
-    fetchData();
-  }, []);
+    initializePage();
+  }, [addWalletListener, login]);
 
   const connectWalletPressed = async () => {
     const walletResponse = await connectWallet();
-    setStatus(walletResponse.status);
-    setWallet(walletResponse.address);
+    login(walletResponse);
   };
 
   const onMintPressed = async () => {
@@ -82,12 +121,6 @@ const Minter = (props) => {
       setStatus("Please select an item from the list.");
     }
   };
-
-  const loginBrandPressed = async () => {
-    const brandValidity = await getBrandValidity();
-    setBrandLogged(brandValidity.result);
-    setStatus(brandValidity.status);
-  }
 
   const handleFilterChange = (event) => {
     const value = event.target.value.toLowerCase();
@@ -113,56 +146,47 @@ const Minter = (props) => {
           <span>Connect Wallet</span>
         )}
       </button>
-      { walletAddress.length > 0 && !brandLogged && (
-        <button id="brandButton" onClick={loginBrandPressed}>
-          <span>Login as brand</span>
-        </button>
-      )}      
       <br></br>
+      <h1 id="title">
+        {brandLogged ? (
+          "🧙‍♂️ NFTime Minter"
+        ) : (
+          "Your NFTime Collection"
+        )}        
+      </h1>
       { brandLogged && (
         <div>
-          <h1 id="title">🧙‍♂️ NFTime Minter</h1>
-          <p>
-            Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".
-          </p>
-          <form>
-            <h2>Recipient: </h2>
-            <input
-              type="text"
-              placeholder="0x..."
-              onChange={(event) => setRecipient(event.target.value)}
-            />
-            <Form.Control
-              autoFocus
-              className="mx-3 my-2 w-auto"
-              placeholder="Type to filter..."
-              onChange={handleFilterChange}
-            />
-            <Row xs={1} md={5} className="g-4">
-              {filteredInfo.map((watch, idx) => (
-                <Col key={idx}>
-                  <Card className={`bg-${selectedWatch === watch ? "info" : "light"}`} onClick={() => handleCardClick(watch)}>
-                    <Card.Img variant="top" src={`https://ipfs.io/ipfs/${watch.image}`} />
-                    <Card.Body>
-                      <Card.Title>{watch.model}</Card.Title>
-                      <Card.Text>
-                        {watch.brand} - {watch.year_of_production}
-                      </Card.Text>
-                      {/* Add any additional watch details as needed */}
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </form>
-          <button id="mintButton" onClick={onMintPressed}>
-            Mint NFT
-          </button>
+          <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
+          <h2>Recipient: </h2>
+          <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
         </div>
       )}
-      <p id="status">
-        {status}
-      </p>
+      <Form.Control
+        autoFocus
+        className="mx-3 my-2 w-auto"
+        placeholder="Type to filter..."
+        onChange={handleFilterChange}
+      />
+      <Row xs={1} md={5} className="g-4">
+        {filteredInfo.map((watch, idx) => (
+          <Col key={idx}>
+            <Card className={`bg-${selectedWatch === watch ? "info" : "light"}`} onClick={() => handleCardClick(watch)}>
+              <Card.Img variant="top" src={watch.image}/>
+              <Card.Body>
+                <Card.Title>{watch.model}</Card.Title>
+                <Card.Text>
+                  {watch.brand} - {watch.year_of_production}
+                </Card.Text>
+                {/* Add any additional watch details as needed */}
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+      { brandLogged && (
+        <button id="mintButton" onClick={onMintPressed}>Mint NFT</button>
+      )}
+      <p id="status">{ status }</p>
     </div>
   );
 };
