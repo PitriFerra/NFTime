@@ -23,7 +23,6 @@ const Minter = (props) => {
     try {
       const querySnapshot = await getDocs(collection(db, "watches"));
       const data = querySnapshot.docs.map(doc => doc.data());
-      console.log(data);
       setInfo(data);
       setFilteredInfo(data);
     } catch (error) {
@@ -48,7 +47,6 @@ const Minter = (props) => {
         const dataPromises = responses.map(response => response.json());
         const fetchedData = await Promise.all(dataPromises);
         const allWatchData = fetchedData.flat(); // Assuming fetchedData is an array of arrays, you may need to adjust accordingly
-        console.log(allWatchData);
 
         // Map the "name" field to "model"
         const transformedData = allWatchData.map((watch) => {
