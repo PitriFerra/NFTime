@@ -193,3 +193,7 @@ function installEthereum() {
     ),
   };
 }
+
+export const onSellNFT = async (watch, price) => {
+  // TODO: implement logic in the smart contract and then here
+}

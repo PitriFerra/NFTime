@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs, onSellNFT } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
+import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
 
 const Minter = (props) => {
   //State variables ----------------------------------
@@ -16,7 +18,12 @@ const Minter = (props) => {
   const [filteredInfo, setFilteredInfo] = useState([]); // Filtered watches
   const [selectedWatch, setSelectedWatch] = useState(null);
   const [brandLogged, setBrandLogged] = useState(false);
+  const [show, setShow] = useState(false);
+  const [price, setPrice] = useState(0);
   // -------------------------------------------------
+
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
 
   // Fetch the required data using the get() method
   const fetchDataFromDB = async () => {
@@ -46,7 +53,7 @@ const Minter = (props) => {
         const responses = await Promise.all(ownedNFTs.map(url => fetch(url)));
         const dataPromises = responses.map(response => response.json());
         const fetchedData = await Promise.all(dataPromises);
-        const allWatchData = fetchedData.flat(); // Assuming fetchedData is an array of arrays, you may need to adjust accordingly
+        const allWatchData = fetchedData.flat();
 
         // Map the "name" field to "model"
         const transformedData = allWatchData.map((watch) => {
@@ -134,6 +141,11 @@ const Minter = (props) => {
     setSelectedWatch(watch);
   };
 
+  const handleSellNFT = () => {
+    onSellNFT(selectedWatch, price); // Call the onSellNFT function with the selected watch and price
+    handleClose(); // Close the modal
+  };
+
   return (
     <div className="Minter">
       <button id="walletButton" onClick={connectWalletPressed}>
@@ -155,11 +167,11 @@ const Minter = (props) => {
         )}        
       </h1>
       { brandLogged && (
-        <div>
+        <>
           <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
           <h2>Recipient: </h2>
           <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
-        </div>
+        </>
       )}
       <Form.Control
         autoFocus
@@ -177,7 +189,9 @@ const Minter = (props) => {
                 <Card.Text>
                   {watch.brand} - {watch.year_of_production}
                 </Card.Text>
-                {/* Add any additional watch details as needed */}
+                { !brandLogged && (
+                  <Button variant="primary" onClick={handleShow}>Sell</Button>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -187,6 +201,50 @@ const Minter = (props) => {
         <button id="mintButton" onClick={onMintPressed}>Mint NFT</button>
       )}
       <p id="status">{ status }</p>
+      <Modal size="lg" centered show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Sell NFT</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedWatch && (
+            <>
+              <Card.Img variant="top" src={selectedWatch.image} />
+              <Row>
+                <Col>
+                  <h5><strong>Model:</strong> {selectedWatch.model}</h5>
+                  <p><strong>Brand:</strong> {selectedWatch.brand}</p>
+                  <p><strong>Year of Production:</strong> {selectedWatch.year_of_production}</p>
+                  <p><strong>Description:</strong> {selectedWatch.description}</p>
+                  {/* Add other watch details as needed */}
+                </Col>
+              </Row>
+              <hr /> {/* Horizontal line to separate data from input */}
+              <Row>
+                <Col xs={8}>
+                  <p><strong>What should be the price of the NFT?</strong></p>
+                  <div style={{ display: 'flex' }}>
+                    <Form.Control
+                      type="number"
+                      placeholder="0"
+                      onChange={(e) => setPrice(e.target.value)}
+                      style={{ width: '15%', marginRight: '5px' }}
+                    />
+                    <span style={{ paddingTop: '8px' }}>ETH</span>
+                  </div>
+                </Col>
+              </Row>
+            </>
+          )}          
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleSellNFT}>
+            Sell
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
