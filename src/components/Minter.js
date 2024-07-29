@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole, grantMINTER_RoleFunction } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole, grantMINTER_RoleFunction, revokeMINTER_RoleFunction } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -132,6 +132,10 @@ const Minter = (props) => {
 
   const grantMINTER_Role = async () => {
     setStatus(await grantMINTER_RoleFunction(recipient));
+  }
+
+  const revokeMINTER_Role = async () => {
+    setStatus(await revokeMINTER_RoleFunction(recipient));
   }
 
   const handleFilterChange = (event) => {

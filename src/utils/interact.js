@@ -156,11 +156,21 @@ export const isRole = async (role) => {
 
 export const grantMINTER_RoleFunction = async (recipient) => {
   try{
-    await contract.methods.hasRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).call(); // Call the smart contract function
+    await contract.methods.grantRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).call(); // Call the smart contract function
     return "Role MINTER granted successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't grant MINTER role to " + recipient + ":", error);
     return "Couldn't grant MINTER role to " + recipient;
+  }
+}
+
+export const revokeMINTER_RoleFunction = async (recipient) => {
+  try{
+    await contract.methods.revokeRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).call(); // Call the smart contract function
+    return "Role MINTER revoked successfully to " + recipient;
+  } catch (error) {
+    console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
+    return "Couldn't revoke MINTER role to " + recipient;
   }
 }
 
