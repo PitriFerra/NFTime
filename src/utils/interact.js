@@ -6,7 +6,7 @@ const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
 const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey); 
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0x5ca79dac0F3f4d39256160105aAFb462103cd489";
+const contractAddress = "0x7a360028e625E1f623Dec86f9E00B07685079aE7";
 const web33 = new Web3(window.ethereum); // Create a new instance of web3
 const contract = new web33.eth.Contract(contractABI, contractAddress); // Create a contract instance using the contract address and ABI
 
