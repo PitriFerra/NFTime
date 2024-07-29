@@ -161,13 +161,13 @@ const Minter = (props) => {
       </button>
       <br></br>
       <h1 id="title">
-        {roleLogged != "none" ? (
+        {roleLogged !== "none" ? (
           "🧙‍♂️ NFTime Minter"
         ) : (
           "Your NFTime Collection"
         )}        
       </h1>
-      { roleLogged == "MINTER" && (
+      { roleLogged === "MINTER" && (
         <>
           <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
           <h2>Recipient: </h2>
@@ -190,7 +190,7 @@ const Minter = (props) => {
                 <Card.Text>
                   {watch.brand} - {watch.year_of_production}
                 </Card.Text>
-                { roleLogged == "none" && (
+                { roleLogged === "none" && (
                   <Button variant="primary" onClick={handleShow}>Sell</Button>
                 )}
               </Card.Body>
@@ -198,7 +198,7 @@ const Minter = (props) => {
           </Col>
         ))}
       </Row>
-      { roleLogged != "MINTER" && (
+      { roleLogged !== "MINTER" && (
         <button id="mintButton" onClick={onMintPressed}>Mint NFT</button>
       )}
       <p id="status">{ status }</p>
