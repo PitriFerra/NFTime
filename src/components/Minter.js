@@ -41,6 +41,7 @@ const Minter = (props) => {
     setStatus(walletResponse.status);
     setWallet(walletResponse.address);
     const brandValidity = await isMinter();
+    console.log(brandValidity);
 
     if(brandValidity.result) {
       setBrandLogged(true);
