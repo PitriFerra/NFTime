@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs, onSellNFT } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs, onSellNFT, isMinter } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -40,7 +40,7 @@ const Minter = (props) => {
   const login = useCallback(async (walletResponse) => {
     setStatus(walletResponse.status);
     setWallet(walletResponse.address);
-    const brandValidity = await getBrandValidity();
+    const brandValidity = await isMinter();
 
     if(brandValidity.result) {
       setBrandLogged(true);
