@@ -190,7 +190,7 @@ const Minter = (props) => {
                 <Card.Text>
                   {watch.brand} - {watch.year_of_production}
                 </Card.Text>
-                { !brandLogged && (
+                { roleLogged == "none" && (
                   <Button variant="primary" onClick={handleShow}>Sell</Button>
                 )}
               </Card.Body>
