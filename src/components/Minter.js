@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isMinter } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -17,7 +17,7 @@ const Minter = (props) => {
 	const [info, setInfo] = useState([]);
   const [filteredInfo, setFilteredInfo] = useState([]); // Filtered watches
   const [selectedWatch, setSelectedWatch] = useState(null);
-  const [brandLogged, setBrandLogged] = useState(false);
+  const [roleLogged, setRoleLogged] = useState("none");
   const [show, setShow] = useState(false);
   const [price, setPrice] = useState(0);
   // -------------------------------------------------
@@ -40,14 +40,14 @@ const Minter = (props) => {
   const login = useCallback(async (walletResponse) => {
     setStatus(walletResponse.status);
     setWallet(walletResponse.address);
-    const brandValidity = await isMinter();
-    console.log(brandValidity);
 
-    if(brandValidity.result) {
-      setBrandLogged(true);
+    if(await isRole("0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848")) {
+      setRoleLogged("BURNER");
+    } else if(await isRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6")) {
+      setRoleLogged("MINTER");
       fetchDataFromDB();
     } else {
-      setBrandLogged(false);
+      setRoleLogged("none");
       const ownedNFTs = await getOwnedNFTs();
 
       try {  
@@ -161,13 +161,13 @@ const Minter = (props) => {
       </button>
       <br></br>
       <h1 id="title">
-        {brandLogged ? (
+        {roleLogged != "none" ? (
           "🧙‍♂️ NFTime Minter"
         ) : (
           "Your NFTime Collection"
         )}        
       </h1>
-      { brandLogged && (
+      { roleLogged == "MINTER" && (
         <>
           <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
           <h2>Recipient: </h2>
@@ -198,7 +198,7 @@ const Minter = (props) => {
           </Col>
         ))}
       </Row>
-      { brandLogged && (
+      { roleLogged != "MINTER" && (
         <button id="mintButton" onClick={onMintPressed}>Mint NFT</button>
       )}
       <p id="status">{ status }</p>

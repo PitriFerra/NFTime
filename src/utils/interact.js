@@ -145,42 +145,11 @@ export const getCurrentWalletConnected = async () => {
     return installEthereum();
 };
 
-export const isMinter = async () => {
+export const isRole = async (role) => {
   try{
-    const result = await contract.methods.hasRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", window.ethereum.selectedAddress).call(); // Call the smart contract function
-
-    if(result)
-      return {
-        result: result,
-        status: "Welcome to NFTime",
-      };
-    else
-      return {
-        result: result,
-        status: "You are not a minter",
-      };
+    return await contract.methods.hasRole(role, window.ethereum.selectedAddress).call(); // Call the smart contract function
   } catch (error) {
-    console.error("Error retrieving minter validity:", error);
-    return false;
-  }
-}
-
-export const getBrandValidity = async () => {
-  try {
-    const result = await contract.methods.getBrandValidity(window.ethereum.selectedAddress).call(); // Call the smart contract function
-
-    if(result)
-      return {
-        result: result,
-        status: "Welcome to NFTime",
-      };
-    else
-      return {
-        result: result,
-        status: "😥 You're not a brand or your validity has been revoked. Contact your brand for more details",
-      };
-  } catch (error) {
-    console.error("Error retrieving brand validity:", error);
+    console.error("Error retrieving role validity:", error);
     return false;
   }
 }
