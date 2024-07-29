@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getBrandValidity, getOwnedNFTs, onSellNFT, isMinter } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isMinter } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
