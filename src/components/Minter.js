@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole } from "../utils/interact.js";
+import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole, grantMINTER_RoleFunction } from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -130,6 +130,10 @@ const Minter = (props) => {
     }
   };
 
+  const grantMINTER_Role = async () => {
+    setStatus(await grantMINTER_RoleFunction(recipient));
+  }
+
   const handleFilterChange = (event) => {
     const value = event.target.value.toLowerCase();
     const filteredData = info.filter((watch) =>
@@ -167,6 +171,13 @@ const Minter = (props) => {
           "Your NFTime Collection"
         )}        
       </h1>
+      { roleLogged === "BURNER" && (
+        <>
+          <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
+          <button id="grantMINTER_RoleButton" onClick={grantMINTER_Role}>Grant MINTER role</button>
+          <button id="revokeMINTER_RoleButton" onClick={revokeMINTER_Role}>Revoke MINTER role</button>
+        </>
+      )}
       { roleLogged === "MINTER" && (
         <>
           <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
