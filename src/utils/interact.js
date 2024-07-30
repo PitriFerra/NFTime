@@ -6,9 +6,76 @@ const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
 const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey); 
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0x7a360028e625E1f623Dec86f9E00B07685079aE7";
+const contractAddress = "0x09c0d1Fe0d8237c9A17da5E10818CcdA76ee44f5";
 const web33 = new Web3(window.ethereum); // Create a new instance of web3
 const contract = new web33.eth.Contract(contractABI, contractAddress); // Create a contract instance using the contract address and ABI
+
+export const mintToken = async (recipient, watch) => {
+  // error handling --------------------------------------------------------
+  if(recipient.trim() === "")
+    return {
+      success: false,
+      status: "❗Please make sure all fields are completed before minting."
+    }
+  // -----------------------------------------------------------------------
+
+  // make metadata ---------------------------------------
+  const metadata = {};
+  metadata.name = watch.model;
+  metadata.image = watch.image;
+  metadata.description = watch.description;
+  metadata.attributes = [
+    ...watch.colors.map((color) => ({
+      trait_type: "colors",
+      value: color,
+    })),
+    {
+      trait_type: "year_of_production",
+      value: watch.year_of_production,
+    },
+    {
+      trait_type: "certifier",
+      value: window.ethereum.selectedAddress,
+    },
+    {
+      trait_type: "brand",
+      value: watch.brand,
+    }
+  ];
+  // -----------------------------------------------------
+  
+  const pinataResponse = await pinJSONToIPFS(metadata); // pinata pin request
+
+  if (!pinataResponse.success)
+    return {
+      success: false,
+      status: "😢 Something went wrong while uploading your tokenURI.",
+    }
+  
+  const tokenURI = pinataResponse.pinataUrl; 
+
+  try {
+    // Get the account to send the transaction from
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const sender = accounts[0];
+
+    // Call the safeMint function with the fee included
+    await contract.methods.safeMint(recipient, tokenURI).send({
+      from: sender,
+      value: 10
+    });
+
+    return {
+      success: true,
+      status: "✅ Something went right"
+    }
+  } catch (error) {
+    return {
+      success: false,
+      status: "😥 Something went wrong: " + error.message
+    }
+  }
+};
 
 export const mintNFT = async(recipient, watch) => {
     // error handling --------------------------------------------------------
@@ -59,7 +126,8 @@ export const mintNFT = async(recipient, watch) => {
     const transactionParameters = {
       to: contractAddress, // Required except during contract publications.
       from: window.ethereum.selectedAddress, // must match user's active address.
-      'data': window.contract.methods.mint(recipient, tokenURI).encodeABI() // make call to NFT smart contract 
+      value: 10, // Fee in wei
+      'data': window.contract.methods.safeMint(recipient, tokenURI).encodeABI() // make call to NFT smart contract 
     };
 
     // Sign transaction via Metamask ---------------------------------------------------------------------
@@ -148,6 +216,24 @@ export const getCurrentWalletConnected = async () => {
 export const isRole = async (role) => {
   try{
     return await contract.methods.hasRole(role, window.ethereum.selectedAddress).call(); // Call the smart contract function
+  } catch (error) {
+    console.error("Error retrieving role validity:", error);
+    return false;
+  }
+}
+
+export const pause = async () => {
+  try{
+    return await contract.methods.pause().send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+  } catch (error) {
+    console.error("Error retrieving role validity:", error);
+    return false;
+  }
+}
+
+export const unpause = async () => {
+  try{
+    return await contract.methods.unpause().send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
   } catch (error) {
     console.error("Error retrieving role validity:", error);
     return false;

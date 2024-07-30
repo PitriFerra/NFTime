@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { connectWallet, getCurrentWalletConnected, mintNFT, getOwnedNFTs, onSellNFT, isRole, grantMINTER_RoleFunction, revokeMINTER_RoleFunction } from "../utils/interact.js";
+import * as interact from "../utils/interact.js";
 import { db } from '../firebase.js'; // Import Firestore database
 import { collection, getDocs } from "firebase/firestore";
 import Form from 'react-bootstrap/Form';
@@ -17,7 +17,7 @@ const Minter = (props) => {
 	const [info, setInfo] = useState([]);
   const [filteredInfo, setFilteredInfo] = useState([]); // Filtered watches
   const [selectedWatch, setSelectedWatch] = useState(null);
-  const [roleLogged, setRoleLogged] = useState("none");
+  const [rolesLogged, setRolesLogged] = useState([]);
   const [show, setShow] = useState(false);
   const [price, setPrice] = useState(0);
   // -------------------------------------------------
@@ -40,56 +40,62 @@ const Minter = (props) => {
   const login = useCallback(async (walletResponse) => {
     setStatus(walletResponse.status);
     setWallet(walletResponse.address);
+    const roles = [];
 
-    if(await isRole("0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848")) {
-      setRoleLogged("BURNER");
-    } else if(await isRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6")) {
-      setRoleLogged("MINTER");
+    if(await interact.isRole("0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a"))
+      roles.push("PAUSER");
+
+    if(await interact.isRole("0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848"))
+      roles.push("BURNER");
+    
+    if(await interact.isRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6")) {
+      roles.push("MINTER");
       fetchDataFromDB();
-    } else {
-      setRoleLogged("none");
-      const ownedNFTs = await getOwnedNFTs();
+    }
 
-      try {  
-        const responses = await Promise.all(ownedNFTs.map(url => fetch(url)));
-        const dataPromises = responses.map(response => response.json());
-        const fetchedData = await Promise.all(dataPromises);
-        const allWatchData = fetchedData.flat();
+    // Update state with all roles at once
+    setRolesLogged(prevRoles => [...prevRoles, ...roles]);
+    const ownedNFTs = await interact.getOwnedNFTs();
 
-        // Map the "name" field to "model"
-        const transformedData = allWatchData.map((watch) => {
-          const brandAttribute = watch.attributes.find(
-            (attribute) => attribute.trait_type === "brand"
-          );
-    
-          const yearOfProductionAttribute = watch.attributes.find(
-            (attribute) => attribute.trait_type === "year_of_production"
-          );
-    
-          const brand = brandAttribute ? brandAttribute.value : "Unknown Brand";
-          const yearOfProduction = yearOfProductionAttribute
-            ? parseInt(yearOfProductionAttribute.value)
-            : 0; // You can set a default value for year if it's not available
-    
-          return {
-            ...watch,
-            model: watch.name,
-            brand: brand,
-            year_of_production: yearOfProduction,
-          };
-        });
-        setInfo(transformedData);
-        setFilteredInfo(transformedData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
+    try {  
+      const responses = await Promise.all(ownedNFTs.map(url => fetch(url)));
+      const dataPromises = responses.map(response => response.json());
+      const fetchedData = await Promise.all(dataPromises);
+      const allWatchData = fetchedData.flat();
+
+      // Map the "name" field to "model"
+      const transformedData = allWatchData.map((watch) => {
+        const brandAttribute = watch.attributes.find(
+          (attribute) => attribute.trait_type === "brand"
+        );
+  
+        const yearOfProductionAttribute = watch.attributes.find(
+          (attribute) => attribute.trait_type === "year_of_production"
+        );
+  
+        const brand = brandAttribute ? brandAttribute.value : "Unknown Brand";
+        const yearOfProduction = yearOfProductionAttribute
+          ? parseInt(yearOfProductionAttribute.value)
+          : 0; // You can set a default value for year if it's not available
+  
+        return {
+          ...watch,
+          model: watch.name,
+          brand: brand,
+          year_of_production: yearOfProduction,
+        };
+      });
+      setInfo(transformedData);
+      setFilteredInfo(transformedData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
     }
   }, []);
   
   const addWalletListener = useCallback(() => {
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", async (accounts) => {
-        const walletResponse = await getCurrentWalletConnected();
+        const walletResponse = await interact.getCurrentWalletConnected();
         login(walletResponse);
       });
     } else {
@@ -108,7 +114,7 @@ const Minter = (props) => {
  
   useEffect(() => {
     async function initializePage() {
-      const walletResponse = await getCurrentWalletConnected();
+      const walletResponse = await interact.getCurrentWalletConnected();
       login(walletResponse);
       addWalletListener();
     }
@@ -117,13 +123,13 @@ const Minter = (props) => {
   }, [addWalletListener, login]);
 
   const connectWalletPressed = async () => {
-    const walletResponse = await connectWallet();
+    const walletResponse = await interact.connectWallet();
     login(walletResponse);
   };
 
   const onMintPressed = async () => {
     if (selectedWatch) {
-      const { status } = await mintNFT(recipient, selectedWatch);
+      const { status } = await interact.mintToken(recipient, selectedWatch);
       setStatus(status);
     } else {
       setStatus("Please select an item from the list.");
@@ -131,11 +137,19 @@ const Minter = (props) => {
   };
 
   const grantMINTER_Role = async () => {
-    setStatus(await grantMINTER_RoleFunction(recipient));
+    setStatus(await interact.grantMINTER_RoleFunction(recipient));
   }
 
   const revokeMINTER_Role = async () => {
-    setStatus(await revokeMINTER_RoleFunction(recipient));
+    setStatus(await interact.revokeMINTER_RoleFunction(recipient));
+  }
+
+  const pauseClicked = async () => {
+    setStatus(await interact.pause() ? "Contract successfully paused" : "Error in pausing contract");
+  }
+
+  const unpauseClicked = async () => {
+    setStatus(await interact.unpause() ? "Contract successfully unpaused" : "Error in unpausing contract");
   }
 
   const handleFilterChange = (event) => {
@@ -151,7 +165,7 @@ const Minter = (props) => {
   };
 
   const handleSellNFT = () => {
-    onSellNFT(selectedWatch, price); // Call the onSellNFT function with the selected watch and price
+    interact.onSellNFT(selectedWatch, price); // Call the onSellNFT function with the selected watch and price
     handleClose(); // Close the modal
   };
 
@@ -169,20 +183,34 @@ const Minter = (props) => {
       </button>
       <br></br>
       <h1 id="title">
-        {roleLogged !== "none" ? (
-          "🧙‍♂️ NFTime Minter"
-        ) : (
-          "Your NFTime Collection"
+        {rolesLogged.includes("PAUSER") && (
+          "🧙‍♂️ NFTime Pauser"
         )}        
       </h1>
-      { roleLogged === "BURNER" && (
+      { rolesLogged.includes("PAUSER") && (
+        <>
+          <button id="PauseButton" onClick={pauseClicked}>Pause</button>
+          <button id="UnpauseButton" onClick={unpauseClicked}>Unpause</button>
+        </>
+      )}
+      <h1 id="title">
+        {rolesLogged.includes("BURNER") && (
+          "🧙‍♂️ NFTime Burner"
+        )}        
+      </h1>
+      { rolesLogged.includes("BURNER") && (
         <>
           <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
           <button id="grantMINTER_RoleButton" onClick={grantMINTER_Role}>Grant MINTER role</button>
           <button id="revokeMINTER_RoleButton" onClick={revokeMINTER_Role}>Revoke MINTER role</button>
         </>
       )}
-      { roleLogged === "MINTER" && (
+      <h1 id="title2">
+        {rolesLogged.includes("MINTER") && (
+          "🧙‍♂️ NFTime Minter"
+        )}        
+      </h1>
+      { rolesLogged.includes("MINTER") && (
         <>
           <p>Simply add the address of the recipient, select the desired watch from the list and then press "Mint NFT".</p>
           <h2>Recipient: </h2>
@@ -205,7 +233,7 @@ const Minter = (props) => {
                 <Card.Text>
                   {watch.brand} - {watch.year_of_production}
                 </Card.Text>
-                { roleLogged === "none" && (
+                { rolesLogged.length === 0 && (
                   <Button variant="primary" onClick={handleShow}>Sell</Button>
                 )}
               </Card.Body>
@@ -213,7 +241,7 @@ const Minter = (props) => {
           </Col>
         ))}
       </Row>
-      { roleLogged !== "MINTER" && (
+      { rolesLogged.includes("MINTER") && (
         <button id="mintButton" onClick={onMintPressed}>Mint NFT</button>
       )}
       <p id="status">{ status }</p>
