@@ -40,6 +40,7 @@ const Minter = (props) => {
   const login = useCallback(async (walletResponse) => {
     setStatus(walletResponse.status);
     setWallet(walletResponse.address);
+    setRolesLogged([]);
     const roles = [];
 
     if(await interact.isRole("0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a"))
@@ -152,6 +153,10 @@ const Minter = (props) => {
     setStatus(await interact.unpause() ? "Contract successfully unpaused" : "Error in unpausing contract");
   }
 
+  const transferOwnership = async () => {
+    setStatus(await interact.transferOwnershipBC(recipient));
+  }
+
   const handleFilterChange = (event) => {
     const value = event.target.value.toLowerCase();
     const filteredData = info.filter((watch) =>
@@ -189,8 +194,10 @@ const Minter = (props) => {
       </h1>
       { rolesLogged.includes("PAUSER") && (
         <>
-          <button id="PauseButton" onClick={pauseClicked}>Pause</button>
-          <button id="UnpauseButton" onClick={unpauseClicked}>Unpause</button>
+          <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
+          <button onClick={pauseClicked}>Pause</button>
+          <button onClick={unpauseClicked}>Unpause</button>
+          <button onClick={transferOwnership}>Transfer ownership</button>
         </>
       )}
       <h1 id="title">
@@ -201,8 +208,8 @@ const Minter = (props) => {
       { rolesLogged.includes("BURNER") && (
         <>
           <input type="text" placeholder="0x..." onChange={(event) => setRecipient(event.target.value)}/>
-          <button id="grantMINTER_RoleButton" onClick={grantMINTER_Role}>Grant MINTER role</button>
-          <button id="revokeMINTER_RoleButton" onClick={revokeMINTER_Role}>Revoke MINTER role</button>
+          <button onClick={grantMINTER_Role}>Grant MINTER role</button>
+          <button onClick={revokeMINTER_Role}>Revoke MINTER role</button>
         </>
       )}
       <h1 id="title2">

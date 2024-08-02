@@ -260,6 +260,16 @@ export const revokeMINTER_RoleFunction = async (recipient) => {
   }
 }
 
+export const transferOwnershipBC = async (recipient) => {
+  try{
+    await contract.methods.setCommissionRecipient(recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    return "Role MINTER revoked successfully to " + recipient;
+  } catch (error) {
+    console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
+    return "Couldn't revoke MINTER role to " + recipient;
+  }
+}
+
 export const getOwnedNFTs = async () => {
   try {
     const walletAddress = window.ethereum.selectedAddress; // Get the connected wallet's address
