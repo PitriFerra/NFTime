@@ -3,10 +3,13 @@ import Web3 from 'web3';
 
 require('dotenv').config();
 const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
+console.log("alchemyKey", alchemyKey)
 const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
-const web3 = createAlchemyWeb3(alchemyKey); 
+const web3 = createAlchemyWeb3(alchemyKey);
+console.log("web3", web3)
 const contractABI = require('../contract-abi.json')
-const contractAddress = "0x09c0d1Fe0d8237c9A17da5E10818CcdA76ee44f5";
+const contractAddress = "0x3D329b66a5e3Ce53E62FebbEE13C8f2D8d177d40";
+
 const web33 = new Web3(window.ethereum); // Create a new instance of web3
 const contract = new web33.eth.Contract(contractABI, contractAddress); // Create a contract instance using the contract address and ABI
 
@@ -43,7 +46,7 @@ export const mintToken = async (recipient, watch) => {
     }
   ];
   // -----------------------------------------------------
-  
+
   const pinataResponse = await pinJSONToIPFS(metadata); // pinata pin request
 
   if (!pinataResponse.success)
@@ -51,8 +54,8 @@ export const mintToken = async (recipient, watch) => {
       success: false,
       status: "😢 Something went wrong while uploading your tokenURI.",
     }
-  
-  const tokenURI = pinataResponse.pinataUrl; 
+
+  const tokenURI = pinataResponse.pinataUrl;
 
   try {
     // Get the account to send the transaction from
@@ -60,9 +63,9 @@ export const mintToken = async (recipient, watch) => {
     const sender = accounts[0];
 
     // Call the safeMint function with the fee included
-    await contract.methods.safeMint(recipient, tokenURI).send({
+    console.log("Minting token with tokenURI: " + tokenURI + " to address: " + recipient + " with fee: 10")
+    await contract.methods.safeMint(recipient, tokenURI, 10).send({
       from: sender,
-      value: 10
     });
 
     return {
@@ -110,7 +113,7 @@ export const mintNFT = async(recipient, watch) => {
       }
     ];
     // -----------------------------------------------------
-    
+
     const pinataResponse = await pinJSONToIPFS(metadata); // pinata pin request
 
     if (!pinataResponse.success)
@@ -118,8 +121,8 @@ export const mintNFT = async(recipient, watch) => {
         success: false,
         status: "😢 Something went wrong while uploading your tokenURI.",
       }
-    
-    const tokenURI = pinataResponse.pinataUrl;  
+
+    const tokenURI = pinataResponse.pinataUrl;
     window.contract = await new web3.eth.Contract(contractABI, contractAddress); // load smart contract
 
     // set up your Ethereum transaction
@@ -127,7 +130,7 @@ export const mintNFT = async(recipient, watch) => {
       to: contractAddress, // Required except during contract publications.
       from: window.ethereum.selectedAddress, // must match user's active address.
       value: 10, // Fee in wei
-      'data': window.contract.methods.safeMint(recipient, tokenURI).encodeABI() // make call to NFT smart contract 
+      'data': window.contract.methods.safeMint(recipient, tokenURI).encodeABI() // make call to NFT smart contract
     };
 
     // Sign transaction via Metamask ---------------------------------------------------------------------
@@ -224,6 +227,7 @@ export const isRole = async (role) => {
 
 export const pause = async () => {
   try{
+    console.log("window.ethereum.selectedAddress", window.ethereum.selectedAddress)
     return await contract.methods.pause().send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
   } catch (error) {
     console.error("Error retrieving role validity:", error);
@@ -273,7 +277,7 @@ export const transferOwnershipBC = async (recipient) => {
 export const getOwnedNFTs = async () => {
   try {
     const walletAddress = window.ethereum.selectedAddress; // Get the connected wallet's address
-    const ownedNFTs = await contract.methods.getOwnedNFTs(walletAddress).call(); // Call the smart contract function to get the NFTs owned by the wallet
+    const ownedNFTs = await contract.methods.getCustomerTokens(walletAddress).call(); // Call the smart contract function to get the NFTs owned by the wallet
     return ownedNFTs;
   } catch (error) {
     console.error("Error retrieving owned NFTs:", error);

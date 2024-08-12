@@ -1,11 +1,10 @@
 import './App.css';
-import Minter from './components/Minter'
+import Minter from 'src/screens/Minter'
 
 function App() {
   return (
     <div className="App">
       <Minter></Minter>
-      
     </div>
   );
 }
