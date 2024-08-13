@@ -1,17 +1,10 @@
 import {pinJSONToIPFS} from './pinata.js'
-import Web3 from 'web3';
+import {Contract, ethers} from "ethers";
 
 require('dotenv').config();
-const alchemyKey = process.env.REACT_APP_ALCHEMY_KEY;
-console.log("alchemyKey", alchemyKey)
-const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
-const web3 = createAlchemyWeb3(alchemyKey);
-console.log("web3", web3)
-const contractABI = require('../contract-abi.json')
-const contractAddress = "0x3D329b66a5e3Ce53E62FebbEE13C8f2D8d177d40";
 
-const web33 = new Web3(window.ethereum); // Create a new instance of web3
-const contract = new web33.eth.Contract(contractABI, contractAddress); // Create a contract instance using the contract address and ABI
+const contractABI = require('../contract-abi.json')
+const contractAddress = "0xA99b2d726a2E2df3857b413699753eBa5EFb5c5f";
 
 export const mintToken = async (recipient, watch) => {
   // error handling --------------------------------------------------------
@@ -58,21 +51,50 @@ export const mintToken = async (recipient, watch) => {
   const tokenURI = pinataResponse.pinataUrl;
 
   try {
-    // Get the account to send the transaction from
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const sender = accounts[0];
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-    // Call the safeMint function with the fee included
-    console.log("Minting token with tokenURI: " + tokenURI + " to address: " + recipient + " with fee: 10")
-    await contract.methods.safeMint(recipient, tokenURI, 10).send({
-      from: sender,
-    });
+    const tx = await contract.safeMint(recipient, tokenURI, 10);
+
+    const receipt = await tx.wait();
+
+    if (receipt.logs) {
+      for (const log of receipt.logs) {
+        try {
+          const event = contract.interface.parseLog(log);
+          if (event) {
+            console.log("Event found:", event.name);
+            console.log("Event arguments:", event.args);
+
+            // If you're expecting a specific event, you can check for it here
+            if (event.name === 'Transfer') {
+              const tokenId = event.args.tokenId;
+              console.log('Minted token ID:', tokenId.toString());
+            }
+
+            // If there's a custom event with the result, check for it here
+            if (event.name === 'MintResult') {
+              const result = event.args.result; // Adjust 'result' to match your event structure
+              console.log('Mint result:', result.toString());
+            }
+          }
+        } catch (parseError) {
+          console.log("Couldn't parse log:", log);
+          return {
+            success: false,
+            status: "😥 Something went wrong: " + parseError.message
+          }
+        }
+      }
+    }
 
     return {
       success: true,
-      status: "✅ Something went right"
+      status: "✅ Something went right, result: " + receipt.transactionHash
     }
   } catch (error) {
+    console.error("Error minting NFT:", error);
     return {
       success: false,
       status: "😥 Something went wrong: " + error.message
@@ -123,7 +145,7 @@ export const mintNFT = async(recipient, watch) => {
       }
 
     const tokenURI = pinataResponse.pinataUrl;
-    window.contract = await new web3.eth.Contract(contractABI, contractAddress); // load smart contract
+    // window.contract = await new web3.eth.Contract(contractABI, contractAddress); // load smart contract
 
     // set up your Ethereum transaction
     const transactionParameters = {
@@ -218,7 +240,10 @@ export const getCurrentWalletConnected = async () => {
 
 export const isRole = async (role) => {
   try{
-    return await contract.methods.hasRole(role, window.ethereum.selectedAddress).call(); // Call the smart contract function
+    const provider = new ethers.BrowserProvider(window.ethereum)
+
+    const contract = new ethers.Contract(contractAddress, contractABI, provider)
+    return await contract.hasRole(role, window.ethereum.selectedAddress);
   } catch (error) {
     console.error("Error retrieving role validity:", error);
     return false;
@@ -227,8 +252,11 @@ export const isRole = async (role) => {
 
 export const pause = async () => {
   try{
-    console.log("window.ethereum.selectedAddress", window.ethereum.selectedAddress)
-    return await contract.methods.pause().send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+    return await contract.pause();
   } catch (error) {
     console.error("Error retrieving role validity:", error);
     return false;
@@ -237,7 +265,11 @@ export const pause = async () => {
 
 export const unpause = async () => {
   try{
-    return await contract.methods.unpause().send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+    return await contract.unpause();
   } catch (error) {
     console.error("Error retrieving role validity:", error);
     return false;
@@ -246,7 +278,7 @@ export const unpause = async () => {
 
 export const grantMINTER_RoleFunction = async (recipient) => {
   try{
-    await contract.methods.grantRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    // await contract.methods.grantRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
     return "Role MINTER granted successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't grant MINTER role to " + recipient + ":", error);
@@ -256,7 +288,7 @@ export const grantMINTER_RoleFunction = async (recipient) => {
 
 export const revokeMINTER_RoleFunction = async (recipient) => {
   try{
-    await contract.methods.revokeRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    // await contract.methods.revokeRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
     return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
@@ -266,7 +298,7 @@ export const revokeMINTER_RoleFunction = async (recipient) => {
 
 export const transferOwnershipBC = async (recipient) => {
   try{
-    await contract.methods.setCommissionRecipient(recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
+    // await contract.methods.setCommissionRecipient(recipient).send({ from: window.ethereum.selectedAddress }); // Call the smart contract function
     return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
@@ -276,9 +308,22 @@ export const transferOwnershipBC = async (recipient) => {
 
 export const getOwnedNFTs = async () => {
   try {
-    const walletAddress = window.ethereum.selectedAddress; // Get the connected wallet's address
-    const ownedNFTs = await contract.methods.getCustomerTokens(walletAddress).call(); // Call the smart contract function to get the NFTs owned by the wallet
-    return ownedNFTs;
+    const provider = new ethers.BrowserProvider(window.ethereum)
+    const contract = new Contract(contractAddress, contractABI, provider)
+    const proxyResult = await contract.getCustomerTokens.staticCallResult(window.ethereum.selectedAddress)
+    return Array.from(proxyResult[0])
+  } catch (error) {
+    console.error("Error retrieving owned NFTs:", error);
+    return [];
+  }
+};
+
+export const getNTFUri = async (tokenId) => {
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum)
+    const contract = new Contract(contractAddress, contractABI, provider)
+    const proxyResult = await contract.tokenURI.staticCallResult(tokenId)
+    return proxyResult[0]
   } catch (error) {
     console.error("Error retrieving owned NFTs:", error);
     return [];

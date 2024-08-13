@@ -16,6 +16,7 @@ module.exports = {
           stream: require.resolve('stream-browserify'),
           "fs": false,
           path: require.resolve('path-browserify'),
+          'process/browser': require.resolve('process/browser')
         },
         extensions: ['.js', '.jsx', '.ts', '.tsx']
       },
