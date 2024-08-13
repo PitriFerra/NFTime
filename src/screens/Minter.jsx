@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getNTFUri } from "../utils/interact.js";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const Minter = (props) => {
   //State variables ----------------------------------
@@ -31,7 +33,12 @@ const Minter = (props) => {
   const [selectedWatch, setSelectedWatch] = useState(null);
   const [rolesLogged, setRolesLogged] = useState([]);
   const [show, setShow] = useState(false);
-  const [price, setPrice] = useState(0);
+  const [metadata, setMetadata] = useState({
+    price: 10000.0,
+    weight: 90.0,
+    description: "Beautiful watch in perfect condition.",
+    productionYear: new Date().getFullYear(),
+  });
   // -------------------------------------------------
 
   const handleClose = () => setShow(false);
@@ -104,6 +111,10 @@ const Minter = (props) => {
           (attribute) => attribute.trait_type === "year_of_production",
         );
 
+        const weight = watch.attributes.find(
+          (attribute) => attribute.trait_type === "weight",
+        );
+
         const brand = brandAttribute ? brandAttribute.value : "Unknown Brand";
         const yearOfProduction = yearOfProductionAttribute
           ? parseInt(yearOfProductionAttribute.value)
@@ -112,7 +123,8 @@ const Minter = (props) => {
         return {
           ...watch,
           model: watch.name,
-          brand: brand,
+          brand,
+          weight: weight?.value,
           year_of_production: yearOfProduction,
         };
       });
@@ -153,10 +165,21 @@ const Minter = (props) => {
   };
 
   const onMintPressed = async () => {
-    if (selectedWatch) {
-      const { status } = await interact.mintToken(recipient, selectedWatch);
+    if (
+      metadata.price == null ||
+      metadata.weight == null ||
+      metadata.description == null ||
+      metadata.productionYear == null
+    ) {
+      console.log(metadata);
+      setStatus("Please fill out all the fields.");
+    } else if (selectedWatch) {
+      const { status } = await interact.mintToken(
+        recipient,
+        selectedWatch,
+        metadata,
+      );
       setStatus(status);
-      window.location.reload();
     } else {
       setStatus("Please select an item from the list.");
     }
@@ -205,13 +228,17 @@ const Minter = (props) => {
   };
 
   const handleSellNFT = () => {
-    interact.onSellNFT(selectedWatch, price); // Call the onSellNFT function with the selected watch and price
+    // interact.onSellNFT(selectedWatch, price); // Call the onSellNFT function with the selected watch and price
     handleClose(); // Close the modal
   };
 
   return (
     <div className="Minter m-5">
-      <div className={"flex flex-row font-bold justify-between"}>
+      <div
+        className={
+          "flex flex-row font-bold justify-between sticky top-0 bg-white py-4"
+        }
+      >
         <h1 className="text-3xl underline">Welcome to NFTime ⌚</h1>
         <div className={"flex flex-row items-center space-x-2"}>
           <span>Status: </span>
@@ -252,7 +279,8 @@ const Minter = (props) => {
                   <CardContent>
                     <CardTitle>{watch.model}</CardTitle>
                     <CardDescription>
-                      {watch.brand} - {watch.year_of_production}
+                      {watch.brand} - {watch.year_of_production}{" "}
+                      {" - " + watch.weight + "g"}
                     </CardDescription>
                     {rolesLogged.length === 0 && (
                       <Button variant="primary" onClick={handleShow}>
@@ -332,7 +360,7 @@ const Minter = (props) => {
               onChange={handleFilterChange}
             />
           )}
-          <div className="flex flex-row flex-wrap space-x-2">
+          <div className="flex flex-row flex-wrap gap-2">
             {filteredInfo.map((watch, idx) => (
               <div className="flex flex-col" xs={8} key={idx}>
                 <Card
@@ -358,6 +386,69 @@ const Minter = (props) => {
                 </Card>
               </div>
             ))}
+          </div>
+          <div className="grid w-full max-w-sm mt-2 items-center gap-1.5">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Beautiful watch in perfect condition."
+              defaultValue={metadata.description}
+              onChange={(event) =>
+                setMetadata({
+                  ...metadata,
+                  description: event.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="grid w-full max-w-sm mt-2 items-center gap-1.5">
+            <Label htmlFor="price">Price (USD)</Label>
+            <Input
+              type="number"
+              id="price"
+              placeholder="10000.00"
+              defaultValue={metadata.price}
+              onChange={(event) =>
+                setMetadata({
+                  ...metadata,
+                  price: event.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="grid w-full max-w-sm mt-2 items-center gap-1.5">
+            <Label htmlFor="weight">Weight (g)</Label>
+            <Input
+              type="number"
+              id="weight"
+              placeholder="90.00"
+              defaultValue={metadata.weight}
+              step="0.01"
+              onChange={(event) =>
+                setMetadata({
+                  ...metadata,
+                  weight: event.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="grid w-full max-w-sm mt-2 items-center gap-1.5">
+            <Label htmlFor="productionYear">Year of production</Label>
+            <Input
+              type="number"
+              min="1900"
+              max="2099"
+              step="1"
+              id="productionYear"
+              defaultValue={metadata.productionYear}
+              placeholder="2000"
+              onChange={(event) =>
+                setMetadata({
+                  ...metadata,
+                  productionYear: event.target.value,
+                })
+              }
+            />
           </div>
           {rolesLogged.includes("MINTER") && (
             <Button className={"my-2"} id="mintButton" onClick={onMintPressed}>
@@ -403,7 +494,6 @@ const Minter = (props) => {
                     <Input
                       type="number"
                       placeholder="0"
-                      onChange={(e) => setPrice(e.target.value)}
                       style={{ width: "15%", marginRight: "5px" }}
                     />
                     <span style={{ paddingTop: "8px" }}>ETH</span>
