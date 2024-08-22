@@ -4,7 +4,7 @@ import { Contract, ethers } from "ethers";
 require("dotenv").config();
 
 const contractABI = require("../contract-abi.json");
-const contractAddress = "0xC6280Ff4ef3dD10cD829F987Aa28CED056083284";
+const contractAddress = "0x99ADAccfA6D3ebCf9a24cdBB417Eb5a1A93b5609";
 
 export const mintToken = async (recipient, watch, metadataInput) => {
   console.log("Minting token with metadata:", metadataInput);
