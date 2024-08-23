@@ -4,7 +4,7 @@ import { Contract, ethers } from "ethers";
 require("dotenv").config();
 
 const contractABI = require("../contract-abi.json");
-const contractAddress = "0x99ADAccfA6D3ebCf9a24cdBB417Eb5a1A93b5609";
+const contractAddress = "0x991440fEF43de768b7Cde0c13f5B99933F3ff8d5";
 
 export const mintToken = async (recipient, watch, metadataInput) => {
   console.log("Minting token with metadata:", metadataInput);
@@ -227,10 +227,7 @@ export const grantMINTER_RoleFunction = async (recipient) => {
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
     console.log("recepient", recipient);
 
-    await contract.grantRole.send(
-      "0x619937ab08bc2c0699dba71ae4b71585cb74f8e5e91a3066a9b2a4d85dfe0a5d",
-      recipient,
-    );
+    await contract.addCertifier(recipient, "");
     return "Role MINTER granted successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't grant MINTER role to " + recipient + ":", error);
@@ -244,10 +241,7 @@ export const revokeMINTER_RoleFunction = async (recipient) => {
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-    await contract.revokeRole.send(
-      "0x619937ab08bc2c0699dba71ae4b71585cb74f8e5e91a3066a9b2a4d85dfe0a5d",
-      recipient,
-    );
+    await contract.removeCertifier(recipient);
     return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
@@ -261,11 +255,12 @@ export const transferOwnershipBC = async (recipient) => {
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
+    console.log("recepient", recipient);
     return await contract.tranferBrandAddressOwnership(recipient);
     return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
-    console.error("Couldn't revoke MINTER role to " + recipient + ":", error);
-    return "Couldn't revoke MINTER role to " + recipient;
+    console.error("Couldn't trasnfer brand ownership role to " + recipient + ":", error);
+    return "Couldn't trasnfer brand ownership role to " + recipient;
   }
 };
 

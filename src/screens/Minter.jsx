@@ -258,7 +258,7 @@ const Minter = (props) => {
       <div className={"divide-y"}>
         <div className={"py-6"}>
           <h1 id="title" className={"font-bold"}>
-            {rolesLogged.includes("PAUSER") && "⌚️ Owned NFT Watches"}
+            {"⌚️ Owned NFT Watches"}
           </h1>
 
           <div className="flex flex-row flex-wrap space-x-2">
@@ -299,15 +299,9 @@ const Minter = (props) => {
           </h1>
           {rolesLogged.includes("PAUSER") && (
             <>
-              <Input
-                type="text"
-                placeholder="0x..."
-                onChange={(event) => setRecipient(event.target.value)}
-              />
               <div className={"space-x-2 mt-2"}>
                 <Button onClick={pauseClicked}>Pause</Button>
                 <Button onClick={unpauseClicked}>Unpause</Button>
-                <Button onClick={transferOwnership}>Transfer ownership</Button>
               </div>
             </>
           )}
@@ -328,6 +322,7 @@ const Minter = (props) => {
                   Grant MINTER role
                 </Button>
                 <Button onClick={revokeMINTER_Role}>Revoke MINTER role</Button>
+                <Button onClick={transferOwnership}>Transfer ownership</Button>
               </div>
             </>
           )}
@@ -360,7 +355,10 @@ const Minter = (props) => {
               onChange={handleFilterChange}
             />
           )}
-          <div className="flex flex-row flex-wrap gap-2">
+          {rolesLogged.includes("MINTER") && (
+            <>
+            <div className="flex flex-row flex-wrap gap-2">
+            
             {filteredInfo.map((watch, idx) => (
               <div className="flex flex-col" xs={8} key={idx}>
                 <Card
@@ -450,10 +448,11 @@ const Minter = (props) => {
               }
             />
           </div>
-          {rolesLogged.includes("MINTER") && (
+          
             <Button className={"my-2"} id="mintButton" onClick={onMintPressed}>
               Mint NFT
             </Button>
+            </>
           )}
         </div>
       </div>
