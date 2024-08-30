@@ -257,7 +257,7 @@ export const transferOwnershipBC = async (recipient) => {
 
     console.log("recepient", recipient);
     return await contract.tranferBrandAddressOwnership(recipient);
-    return "Role MINTER revoked successfully to " + recipient;
+    //return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't trasnfer brand ownership role to " + recipient + ":", error);
     return "Couldn't trasnfer brand ownership role to " + recipient;
