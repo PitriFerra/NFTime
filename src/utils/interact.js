@@ -4,7 +4,7 @@ import { Contract, ethers } from "ethers";
 require("dotenv").config();
 
 const contractABI = require("../contract-abi.json");
-const contractAddress = "0x11836F51fd1d07477592026fA6Ca6fc546D4FC50";
+const contractAddress = "0x390bb5Ab7bE807dB2b6BE5261B381d5D5C0479b4";
 
 export const mintToken = async (recipient, watch, metadataInput) => {
   console.log("Minting token with metadata:", metadataInput);
@@ -257,7 +257,6 @@ export const transferOwnershipBC = async (recipient) => {
 
     console.log("recepient", recipient);
     return await contract.tranferBrandAddressOwnership(recipient);
-    //return "Role MINTER revoked successfully to " + recipient;
   } catch (error) {
     console.error("Couldn't trasnfer brand ownership role to " + recipient + ":", error);
     return "Couldn't trasnfer brand ownership role to " + recipient;

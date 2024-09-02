@@ -295,7 +295,7 @@ const Minter = (props) => {
         </div>
         <div className={"py-6"}>
           <h1 id="title" className={"font-bold"}>
-            {rolesLogged.includes("PAUSER") && "🧙‍♂️ NFTime Pauser"}
+            {rolesLogged.includes("PAUSER") && "🧙‍♂️ NFTime (Pauser)"}
           </h1>
           {rolesLogged.includes("PAUSER") && (
             <>
@@ -308,7 +308,7 @@ const Minter = (props) => {
         </div>
         <div className={"py-6"}>
           <h1 id="title" className={"font-bold"}>
-            {rolesLogged.includes("BURNER") && "🔥 NFTime Burner"}
+            {rolesLogged.includes("BURNER") && "🔥 Brand (Burner)"}
           </h1>
           {rolesLogged.includes("BURNER") && (
             <>
@@ -319,9 +319,9 @@ const Minter = (props) => {
               />
               <div className={"space-x-2 mt-2"}>
                 <Button type="button" onClick={grantMINTER_Role}>
-                  Grant MINTER role
+                  Grant CERTIFIER role
                 </Button>
-                <Button onClick={revokeMINTER_Role}>Revoke MINTER role</Button>
+                <Button onClick={revokeMINTER_Role}>Revoke CERTIFIER role</Button>
                 <Button onClick={transferOwnership}>Transfer ownership</Button>
               </div>
             </>
@@ -329,7 +329,7 @@ const Minter = (props) => {
         </div>
         <div className={"py-6"}>
           <h1 id="title2" className={"font-bold"}>
-            {rolesLogged.includes("MINTER") && "⛏️ NFTime Minter"}
+            {rolesLogged.includes("MINTER") && "⛏️ Certifier (Minter)"}
           </h1>
           {rolesLogged.includes("MINTER") && (
             <>
